@@ -2,7 +2,7 @@ import { AnchorProvider } from '@project-serum/anchor';
 import { Keypair, PublicKey, SendTransactionError, Signer, Transaction, TransactionInstruction } from '@solana/web3.js';
 import * as crypto from 'crypto';
 
-import { createAllocTreeIx, createAppendIx, createInitEmptyMerkleTreeIx, createInitMerkleTreeWithRootInstruction, createInitMerkleTreeWithRootIx, ValidDepthSizePair } from '../src';
+import { createAllocTreeIx, createAppendIx, createInitEmptyMerkleTreeIx, createInitMerkleTreeWithRootIx, ValidDepthSizePair } from '../src';
 import { MerkleTree } from '../src/merkle-tree';
 
 /// Wait for a transaction of a certain id to confirm and optionally log its messages
@@ -117,20 +117,20 @@ export async function createEmptyTreeOnChain(
 }
 
 export type CreateTreeWithRootArgs = {
-    provider: AnchorProvider,
-    payer: Keypair,
-    depthSizePair: ValidDepthSizePair,
     canopyDepth: number,
-    root: Buffer,
+    depthSizePair: ValidDepthSizePair,
     firstLeaf: Buffer,
     manifestUrl: string,
+    payer: Keypair,
     proofBuffer?: PublicKey,
-    proofs?: Buffer[]
+    proofs?: Buffer[],
+    provider: AnchorProvider,
+    root: Buffer
 };
 export async function createTreeWithRoot(
     args: CreateTreeWithRootArgs
 ): Promise<Keypair> {
-    let { provider, 
+    const { provider, 
         payer, 
         depthSizePair,
         canopyDepth,

@@ -5,8 +5,8 @@
  * See: https://github.com/metaplex-foundation/solita
  */
 
-import * as beet from '@metaplex-foundation/beet'
-import * as web3 from '@solana/web3.js'
+import * as beet from '@metaplex-foundation/beet';
+import * as web3 from '@solana/web3.js';
 
 /**
  * @category Instructions
@@ -14,28 +14,28 @@ import * as web3 from '@solana/web3.js'
  * @category generated
  */
 export type FillProofBufferInstructionArgs = {
-  maxDepth: number
-  partialProof: number[] /* size: 32 */[]
-  index: number
-}
+    index: number;
+    maxDepth: number;
+    partialProof: number[] /* size: 32 */[];
+};
 /**
  * @category Instructions
  * @category FillProofBuffer
  * @category generated
  */
 export const fillProofBufferStruct = new beet.FixableBeetArgsStruct<
-  FillProofBufferInstructionArgs & {
-    instructionDiscriminator: number[] /* size: 8 */
-  }
+    FillProofBufferInstructionArgs & {
+        instructionDiscriminator: number[] /* size: 8 */;
+    }
 >(
-  [
-    ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
-    ['maxDepth', beet.u32],
-    ['partialProof', beet.array(beet.uniformFixedSizeArray(beet.u8, 32))],
-    ['index', beet.u32],
-  ],
-  'FillProofBufferInstructionArgs'
-)
+    [
+        ['instructionDiscriminator', beet.uniformFixedSizeArray(beet.u8, 8)],
+        ['maxDepth', beet.u32],
+        ['partialProof', beet.array(beet.uniformFixedSizeArray(beet.u8, 32))],
+        ['index', beet.u32],
+    ],
+    'FillProofBufferInstructionArgs',
+);
 /**
  * Accounts required by the _fillProofBuffer_ instruction
  *
@@ -46,15 +46,13 @@ export const fillProofBufferStruct = new beet.FixableBeetArgsStruct<
  * @category generated
  */
 export type FillProofBufferInstructionAccounts = {
-  payer: web3.PublicKey
-  proofBuffer: web3.PublicKey
-  systemProgram?: web3.PublicKey
-  anchorRemainingAccounts?: web3.AccountMeta[]
-}
+    anchorRemainingAccounts?: web3.AccountMeta[];
+    payer: web3.PublicKey;
+    proofBuffer: web3.PublicKey;
+    systemProgram?: web3.PublicKey;
+};
 
-export const fillProofBufferInstructionDiscriminator = [
-  242, 1, 180, 207, 192, 129, 104, 160,
-]
+export const fillProofBufferInstructionDiscriminator = [242, 1, 180, 207, 192, 129, 104, 160];
 
 /**
  * Creates a _FillProofBuffer_ instruction.
@@ -67,42 +65,42 @@ export const fillProofBufferInstructionDiscriminator = [
  * @category generated
  */
 export function createFillProofBufferInstruction(
-  accounts: FillProofBufferInstructionAccounts,
-  args: FillProofBufferInstructionArgs,
-  programId = new web3.PublicKey('cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK')
+    accounts: FillProofBufferInstructionAccounts,
+    args: FillProofBufferInstructionArgs,
+    programId = new web3.PublicKey('cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK'),
 ) {
-  const [data] = fillProofBufferStruct.serialize({
-    instructionDiscriminator: fillProofBufferInstructionDiscriminator,
-    ...args,
-  })
-  const keys: web3.AccountMeta[] = [
-    {
-      pubkey: accounts.payer,
-      isWritable: false,
-      isSigner: true,
-    },
-    {
-      pubkey: accounts.proofBuffer,
-      isWritable: false,
-      isSigner: true,
-    },
-    {
-      pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
-      isWritable: false,
-      isSigner: false,
-    },
-  ]
+    const [data] = fillProofBufferStruct.serialize({
+        instructionDiscriminator: fillProofBufferInstructionDiscriminator,
+        ...args,
+    });
+    const keys: web3.AccountMeta[] = [
+        {
+            isSigner: true,
+            isWritable: false,
+            pubkey: accounts.payer,
+        },
+        {
+            isSigner: true,
+            isWritable: false,
+            pubkey: accounts.proofBuffer,
+        },
+        {
+            isSigner: false,
+            isWritable: false,
+            pubkey: accounts.systemProgram ?? web3.SystemProgram.programId,
+        },
+    ];
 
-  if (accounts.anchorRemainingAccounts != null) {
-    for (const acc of accounts.anchorRemainingAccounts) {
-      keys.push(acc)
+    if (accounts.anchorRemainingAccounts != null) {
+        for (const acc of accounts.anchorRemainingAccounts) {
+            keys.push(acc);
+        }
     }
-  }
 
-  const ix = new web3.TransactionInstruction({
-    programId,
-    keys,
-    data,
-  })
-  return ix
+    const ix = new web3.TransactionInstruction({
+        data,
+        keys,
+        programId,
+    });
+    return ix;
 }

@@ -73,16 +73,16 @@ describe('Account Compression', () => {
       const depth = 3;
       const size = 8;
       const cmtKeypair = await createTreeWithRoot({
-        provider,
-        payer: payerKeypair,
+        canopyDepth: depth,
         depthSizePair: {
           maxBufferSize: size,
           maxDepth: depth,
         },
-        canopyDepth: depth,
-        root,
         firstLeaf: leaf,
         manifestUrl: "http://manifest.com/",
+        payer: payerKeypair,
+        provider,
+        root,
       });
       const cmt = cmtKeypair.publicKey;
 

@@ -55,13 +55,6 @@ export function createInitEmptyMerkleTreeIx(
 }
 
 /**
- * Helper function for {@link fillProofBufferInstruction}
- * @param proofBuffer
- * @param proof
- * @returns
- * /
-
-/**
  * Helper function for {@link createInitMerkleTreeWithRootInstruction}
  * @param merkleTree
  * @param authority
@@ -72,37 +65,36 @@ export function createInitMerkleTreeWithRootIx(
     merkleTree: PublicKey,
     authority: PublicKey,
     depthSizePair: ValidDepthSizePair,
-    firstLeaf: Buffer | ArrayLike<number>,
-    root: Buffer | ArrayLike<number>,
+    firstLeaf: ArrayLike<number> | Buffer,
+    root: ArrayLike<number> | Buffer,
     manifestUrl: string,
     initialProof?: Buffer[],
     proofBuffer?: PublicKey,
-    
 ): TransactionInstruction {
-    if(!initialProof && !proofBuffer) {
-        throw new Error("Either initialProof or proofBuffer must be provided");
-    } 
+    if (!initialProof && !proofBuffer) {
+        throw new Error('Either initialProof or proofBuffer must be provided');
+    }
 
     return createInitMerkleTreeWithRootInstruction(
         {
+            anchorRemainingAccounts: initialProof?.map(node => {
+                return {
+                    isSigner: false,
+                    isWritable: false,
+                    pubkey: new PublicKey(node),
+                };
+            }),
             authority: authority,
             merkleTree,
             noop: SPL_NOOP_PROGRAM_ID,
             proofBuffer,
-            anchorRemainingAccounts: initialProof?.map(node => {
-                return {
-                    pubkey: new PublicKey(node),
-                    isSigner: false,
-                    isWritable: false,
-                };
-            })
         },
         {
-            root: Array.from(root),
+            leaf: Array.from(firstLeaf),
+            manifestUrl,
             maxBufferSize: depthSizePair.maxBufferSize,
             maxDepth: depthSizePair.maxDepth,
-            manifestUrl,
-            leaf: Array.from(firstLeaf),
+            root: Array.from(root),
         },
     );
 }
@@ -149,7 +141,7 @@ export function createReplaceIx(
 export function createAppendIx(
     merkleTree: PublicKey,
     authority: PublicKey,
-    newLeaf: Buffer | ArrayLike<number>,
+    newLeaf: ArrayLike<number> | Buffer,
 ): TransactionInstruction {
     return createAppendInstruction(
         {
