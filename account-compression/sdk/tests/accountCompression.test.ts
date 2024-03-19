@@ -83,6 +83,7 @@ describe('Account Compression', () => {
         payer: payerKeypair,
         provider,
         root,
+        proof: merkleTreeRaw.getProof(0).proof,
       });
       const cmt = cmtKeypair.publicKey;
 

@@ -123,7 +123,7 @@ export type CreateTreeWithRootArgs = {
     manifestUrl: string,
     payer: Keypair,
     proofBuffer?: PublicKey,
-    proofs?: Buffer[],
+    proof?: Buffer[],
     provider: AnchorProvider,
     root: Buffer
 };
@@ -138,12 +138,12 @@ export async function createTreeWithRoot(
         firstLeaf,
         manifestUrl, 
         proofBuffer, 
-        proofs 
+        proof 
     } = args;
-    if (proofBuffer === null && proofs === null) {
+    if (proofBuffer === null && proof === null) {
         throw new Error("Either proofBuffer or proofs must be provided");
     }
-    if (!!proofBuffer && !!proofs) {
+    if (!!proofBuffer && !!proof) {
         throw new Error("Either proofBuffer or proofs must be provided, not both");
     }
 
@@ -163,7 +163,7 @@ export async function createTreeWithRoot(
         root,
         firstLeaf,
         manifestUrl,
-        proofs,
+        proof,
         proofBuffer,
     )
     ];

@@ -204,6 +204,10 @@ pub mod spl_account_compression {
 
     /// For extremley large trees that cannot be initialized with root in a single transaction,
     /// this allows a user to fill a buffer of proofs that can be used to initialize the tree with roots.
+    /// Any tree that you cant make a proof in the space of 1024 - (size of the init_with_root instruction) should use this instruction.
+    /// Without proofs that instruction is 208 bytes + the manifest url size. Assuming this url will be around 25/30 bytes, this instruction will be 238 bytes.
+    /// In that example, you would need to be able to make a proof in 786 bytes. Which is 786/32 = 24.5. So you would be able to make a tree of depth 24 maximum.
+    /// The CMT allows for a maximum depth of 30, so this instruction is necessary for trees of depth 25-30.
     pub fn fill_proof_buffer(
         ctx: Context<FillProofBuffer>,
         max_depth: u32,
@@ -220,7 +224,7 @@ pub mod spl_account_compression {
             if owner != &system_program::id() {
                 return Err(AccountCompressionError::IncorrectAccountOwner.into());
             }
-            let space = (max_depth * 32) + 4;
+            let space = (max_depth * 32) + 8;
             let lamports = Rent::get()?.minimum_balance(space as usize);
             let create_ix = create_account(
                 &ctx.accounts.payer.key,
