@@ -81,6 +81,14 @@ pub struct FillProofBuffer<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Context for closing a proof buffer
+#[derive(Accounts)]
+pub struct CloseProofBuffer<'info> {
+    /// Proof Buffer
+    pub payer: Signer<'info>,
+    pub proof_buffer: Signer<'info>,
+}
+
 /// Context for initializing a new SPL ConcurrentMerkleTree
 #[derive(Accounts)]
 pub struct InitializeWithRoot<'info> {
@@ -154,6 +162,8 @@ pub struct CloseTree<'info> {
 
 #[program]
 pub mod spl_account_compression {
+    use self::state::ProofBufferHeader;
+
     use super::*;
 
     /// Creates a new merkle tree with maximum leaf capacity of `power(2, max_depth)`
@@ -211,20 +221,23 @@ pub mod spl_account_compression {
     pub fn fill_proof_buffer(
         ctx: Context<FillProofBuffer>,
         max_depth: u32,
-        partial_proof: Vec<[u8; 32]>,
+        partial_proof: Vec<u8>,
         index: u32,
     ) -> Result<()> {
+        if partial_proof.len() % 32 != 0 || partial_proof.is_empty() {
+            return Err(AccountCompressionError::InvalidProofBuffer.into());
+        }
         let buffer: &mut [u8] = &mut *ctx.accounts.proof_buffer.try_borrow_mut_data()?;
         let len = buffer.len();
-        let owner = ctx.accounts.proof_buffer.owner;
-        let (max, remaining) = if len == 0 {
+        let account_owner = ctx.accounts.proof_buffer.owner;
+        let mut header = if len == 0 {
             if index != 0 {
                 return Err(AccountCompressionError::ProofIndexOutOfBounds.into());
             }
-            if owner != &system_program::id() {
+            if account_owner != &system_program::id() {
                 return Err(AccountCompressionError::IncorrectAccountOwner.into());
             }
-            let space = (max_depth * 32) + 8;
+            let space = (max_depth * 32) + 40;
             let lamports = Rent::get()?.minimum_balance(space as usize);
             let create_ix = create_account(
                 &ctx.accounts.payer.key,
@@ -241,33 +254,42 @@ pub mod spl_account_compression {
                     ctx.accounts.system_program.to_account_info(),
                 ],
             )?;
-            buffer[0..4].copy_from_slice(&max_depth.to_le_bytes());
-            buffer[4..8].copy_from_slice(&max_depth.to_le_bytes());
-            (max_depth, max_depth)
+            ProofBufferHeader {
+                owner: ctx.accounts.payer.key.key(),
+                remaining_depth: max_depth,
+                max_depth,
+            }
         } else {
-            (
-                u32::from_le_bytes(
-                    buffer[0..4]
-                        .try_into()
-                        .map_err(|_| AccountCompressionError::InvalidProofBuffer)?,
-                ),
-                u32::from_le_bytes(
-                    buffer[4..8]
-                        .try_into()
-                        .map_err(|_| AccountCompressionError::InvalidProofBuffer)?,
-                ),
-            )
+            let (header, _) = buffer.split_at_mut(40);
+            *ProofBufferHeader::load_mut_bytes(header)?
         };
-        if max != max_depth {
+        if ctx.accounts.payer.key.as_ref() != header.owner.as_ref() {
+            return Err(AccountCompressionError::InvalidProofBufferOwner.into());
+        }
+        if header.max_depth != max_depth {
             return Err(AccountCompressionError::ProofIndexOutOfBounds.into());
         }
-        let offset = 8 + (index * 32) as usize;
-        for proof in partial_proof.iter() {
-            buffer[offset..8 + ((offset + 1) * 32)].copy_from_slice(proof);
+        let offset = 40 + (index * 32) as usize;
+        let segments: Vec<&[u8]> = partial_proof.chunks(32).collect();
+        for proof in segments.iter() {
+            buffer[offset..40 + ((offset + 1) * 32)].copy_from_slice(proof);
         }
-        let new_remaining = remaining - index;
+        let new_remaining = header.remaining_depth - index;
         //set remaining
-        buffer[4..8].copy_from_slice(&(new_remaining).to_le_bytes());
+        header.remaining_depth = new_remaining;
+        Ok(())
+    }
+
+    /// Closes the proof buffer account
+    pub fn close_proof_buffer(ctx: Context<CloseProofBuffer>) -> Result<()> {
+        let data = ctx.accounts.proof_buffer.try_borrow_data()?;
+        let (owner, _) = data.split_at(32);
+        if owner != ctx.accounts.payer.key.as_ref() {
+            return Err(AccountCompressionError::InvalidProofBufferOwner.into());
+        }
+        let proof_lamports = ctx.accounts.proof_buffer.get_lamports();
+        ctx.accounts.proof_buffer.sub_lamports(proof_lamports)?;
+        ctx.accounts.payer.add_lamports(proof_lamports)?;
         Ok(())
     }
 
@@ -290,13 +312,17 @@ pub mod spl_account_compression {
         let mut merkle_tree_bytes: std::cell::RefMut<'_, &mut [u8]> =
             ctx.accounts.merkle_tree.try_borrow_mut_data()?;
 
-        let proof: Vec<[u8; 32]> = if let Some(proof_buffer) = &ctx.accounts.proof_buffer {
-            let mut proof_buffer = proof_buffer.try_borrow_mut_data()?;
+        let proof: Vec<[u8; 32]> = if let Some(proof_buffer_account) = &ctx.accounts.proof_buffer {
+            let mut proof_buffer = proof_buffer_account.try_borrow_mut_data()?;
             let (_, proof_bytes) = proof_buffer.split_at_mut(8);
             //if len is not a multiple of 32 then return error
             if proof_bytes.len() % 32 != 0 {
                 return Err(AccountCompressionError::InvalidProofBuffer.into());
             }
+
+            let proof_lamports = proof_buffer_account.get_lamports();
+            proof_buffer_account.sub_lamports(proof_lamports)?;
+            ctx.accounts.authority.add_lamports(proof_lamports)?;
             proof_bytes
                 .chunks_exact(32)
                 .map(|c| c.try_into().unwrap())
@@ -562,11 +588,10 @@ pub mod spl_account_compression {
         // Close merkle tree account
         // 1. Move lamports
         let dest_starting_lamports = ctx.accounts.recipient.lamports();
-        let tree_lamports = dest_starting_lamports
+        **ctx.accounts.recipient.lamports.borrow_mut() = dest_starting_lamports
             .checked_add(ctx.accounts.merkle_tree.lamports())
             .unwrap();
-        **ctx.accounts.recipient.try_borrow_mut_lamports()? = tree_lamports;
-        **ctx.accounts.merkle_tree.try_borrow_mut_lamports()? = 0;
+        **ctx.accounts.merkle_tree.lamports.borrow_mut() = 0;
 
         // 2. Set all CMT account bytes to 0
         header_bytes.fill(0);

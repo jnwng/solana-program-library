@@ -55,6 +55,14 @@ pub enum AccountCompressionError {
     /// Invalid proof buffer
     #[msg("Invalid proof buffer")]
     InvalidProofBuffer,
+
+    /// Invalid proof buffer
+    #[msg("Invalid proof buffer owner")]
+    InvalidProofBufferOwner,
+
+    /// Proof buffer max depth mismatch
+    #[msg("Proof buffer max depth mismatch")]
+    ProofBufferMaxDepthMismatch,
 }
 
 impl From<&ConcurrentMerkleTreeError> for AccountCompressionError {

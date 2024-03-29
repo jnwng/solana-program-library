@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 
+use bytemuck::{Pod, Zeroable};
 use spl_concurrent_merkle_tree::concurrent_merkle_tree::ConcurrentMerkleTree;
 use std::mem::size_of;
 
-use crate::error::AccountCompressionError;
+use crate::{error::AccountCompressionError, zero_copy::ZeroCopy};
 
 pub const CONCURRENT_MERKLE_TREE_HEADER_SIZE_V1: usize = 2 + 54;
 
@@ -204,3 +205,13 @@ pub fn merkle_tree_get_size(header: &ConcurrentMerkleTreeHeader) -> Result<usize
         }
     }
 }
+
+#[repr(C)]
+#[derive(Zeroable, Pod, Clone, Copy)]
+pub struct ProofBufferHeader {
+    pub owner: Pubkey,
+    pub max_depth: u32,
+    pub remaining_depth: u32,
+}
+
+impl ZeroCopy for ProofBufferHeader {}
