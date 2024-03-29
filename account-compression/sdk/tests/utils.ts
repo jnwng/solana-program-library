@@ -1,5 +1,5 @@
 import { AnchorProvider } from '@project-serum/anchor';
-import { Keypair, PublicKey, SendTransactionError, Signer, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { ComputeBudgetProgram, Keypair, PublicKey, SendTransactionError, Signer, Transaction, TransactionInstruction } from '@solana/web3.js';
 import * as crypto from 'crypto';
 
 import { createAllocTreeIx, createAppendIx, createInitEmptyMerkleTreeIx, createInitMerkleTreeWithRootIx, ValidDepthSizePair } from '../src';
@@ -7,7 +7,7 @@ import { MerkleTree } from '../src/merkle-tree';
 
 /// Wait for a transaction of a certain id to confirm and optionally log its messages
 export async function confirmAndLogTx(provider: AnchorProvider, txId: string, verbose = false) {
-    const tx = await provider.connection.confirmTransaction(txId, 'confirmed');
+    const tx = await provider.connection.confirmTransaction(txId, 'confirmed',);
     if (tx.value.err || verbose) {
         console.log((await provider.connection.getConfirmedTransaction(txId, 'confirmed'))!.meta!.logMessages);
     }
@@ -119,7 +119,8 @@ export async function createEmptyTreeOnChain(
 export type CreateTreeWithRootArgs = {
     canopyDepth: number,
     depthSizePair: ValidDepthSizePair,
-    firstLeaf: Buffer,
+    leaf: Buffer,
+    leafIndex: number,
     manifestUrl: string,
     payer: Keypair,
     proofBuffer?: PublicKey,
@@ -130,15 +131,16 @@ export type CreateTreeWithRootArgs = {
 export async function createTreeWithRoot(
     args: CreateTreeWithRootArgs
 ): Promise<Keypair> {
-    const { provider, 
-        payer, 
+    const { provider,
+        payer,
         depthSizePair,
         canopyDepth,
         root,
-        firstLeaf,
-        manifestUrl, 
-        proofBuffer, 
-        proof 
+        leaf,
+        leafIndex,
+        manifestUrl,
+        proofBuffer,
+        proof
     } = args;
     if (proofBuffer === null && proof === null) {
         throw new Error("Either proofBuffer or proofs must be provided");
@@ -156,19 +158,28 @@ export async function createTreeWithRoot(
         canopyDepth
     );
 
-    const ixs = [allocAccountIx, createInitMerkleTreeWithRootIx(
-        cmtKeypair.publicKey,
-        payer.publicKey,
-        depthSizePair,
-        root,
-        firstLeaf,
-        manifestUrl,
-        proof,
-        proofBuffer,
-    )
+    const ixs = [
+        ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: 20000,
+        }),
+        ComputeBudgetProgram.requestHeapFrame({
+            bytes: 256 * 1024,
+        }),
+        allocAccountIx,
+        createInitMerkleTreeWithRootIx(
+            cmtKeypair.publicKey,
+            payer.publicKey,
+            depthSizePair,
+            leaf,
+            leafIndex,
+            root,
+            manifestUrl,
+            proof,
+            proofBuffer,
+        )
     ];
 
-    const txId = await execute(provider, ixs, [payer, cmtKeypair]);
-    await confirmAndLogTx(provider, txId as string);
+    const txId = await execute(provider, ixs, [payer, cmtKeypair], true, true);
+    await confirmAndLogTx(provider, txId as string, true);
     return cmtKeypair;
 }

@@ -57,7 +57,11 @@
       "name": "fillProofBuffer",
       "docs": [
         "For extremley large trees that cannot be initialized with root in a single transaction,",
-        "this allows a user to fill a buffer of proofs that can be used to initialize the tree with roots."
+        "this allows a user to fill a buffer of proofs that can be used to initialize the tree with roots.",
+        "Any tree that you cant make a proof in the space of 1024 - (size of the init_with_root instruction) should use this instruction.",
+        "Without proofs that instruction is 208 bytes + the manifest url size. Assuming this url will be around 25/30 bytes, this instruction will be 238 bytes.",
+        "In that example, you would need to be able to make a proof in 786 bytes. Which is 786/32 = 24.5. So you would be able to make a tree of depth 24 maximum.",
+        "The CMT allows for a maximum depth of 30, so this instruction is necessary for trees of depth 25-30."
       ],
       "accounts": [
         {
@@ -86,20 +90,35 @@
         },
         {
           "name": "partialProof",
-          "type": {
-            "vec": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          }
+          "type": "bytes"
         },
         {
           "name": "index",
           "type": "u32"
         }
       ]
+    },
+    {
+      "name": "closeProofBuffer",
+      "docs": [
+        "Closes the proof buffer account"
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": false,
+          "isSigner": true,
+          "docs": [
+            "Proof Buffer"
+          ]
+        },
+        {
+          "name": "proofBuffer",
+          "isMut": false,
+          "isSigner": true
+        }
+      ],
+      "args": []
     },
     {
       "name": "initMerkleTreeWithRoot",
@@ -153,6 +172,10 @@
               32
             ]
           }
+        },
+        {
+          "name": "leafIndex",
+          "type": "u32"
         },
         {
           "name": "leaf",
@@ -749,6 +772,16 @@
       "code": 6010,
       "name": "InvalidProofBuffer",
       "msg": "Invalid proof buffer"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidProofBufferOwner",
+      "msg": "Invalid proof buffer owner"
+    },
+    {
+      "code": 6012,
+      "name": "ProofBufferMaxDepthMismatch",
+      "msg": "Proof buffer max depth mismatch"
     }
   ],
   "metadata": {

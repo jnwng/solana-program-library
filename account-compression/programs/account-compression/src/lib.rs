@@ -301,7 +301,8 @@ pub mod spl_account_compression {
         max_depth: u32,
         max_buffer_size: u32,
         root: [u8; 32],
-        leaf: [u8; 32], // the first leaf
+        leaf_index: u32,
+        leaf: [u8; 32], // the last leaf in the tree
         manifest_url: String,
     ) -> Result<()> {
         require_eq!(
@@ -355,13 +356,13 @@ pub mod spl_account_compression {
             root,
             leaf,
             &proof,
-            0
+            leaf_index
         )?;
+        update_canopy(canopy_bytes, header.get_max_depth(), Some(&change_log_event))?;
         wrap_event(
             &AccountCompressionEvent::InitWithRoot(*change_log_event, manifest_url),
             &ctx.accounts.noop,
-        )?;
-        update_canopy(canopy_bytes, header.get_max_depth(), None)
+        )
     }
 
     /// Executes an instruction that overwrites a leaf node.

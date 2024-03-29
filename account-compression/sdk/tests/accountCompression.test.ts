@@ -68,7 +68,7 @@ describe('Account Compression', () => {
       ];
       const merkleTreeRaw = new MerkleTree(leaves);
       const root = merkleTreeRaw.root;
-      const leaf = leaves[0];
+      const leaf = merkleTreeRaw.leaves[0].node
 
       const depth = 3;
       const size = 8;
@@ -78,7 +78,8 @@ describe('Account Compression', () => {
           maxBufferSize: size,
           maxDepth: depth,
         },
-        firstLeaf: leaf,
+        leaf: leaf,
+        leafIndex: 0,
         manifestUrl: "http://manifest.com/",
         payer: payerKeypair,
         provider,
@@ -88,7 +89,11 @@ describe('Account Compression', () => {
       const cmt = cmtKeypair.publicKey;
 
       const splCMT = await ConcurrentMerkleTreeAccount.fromAccountAddress(connection, cmt);
-      assert(splCMT.getBufferSize() === size, 'Buffer size does not match');
+      console.log(splCMT);
+      assert(
+        Buffer.from(splCMT.getCurrentRoot()).equals(root),
+        'Updated on chain root matches root of updated off chain tree'
+      );
     });
 
     it('Huge Tree is initialized with proof buffer', async () => {
