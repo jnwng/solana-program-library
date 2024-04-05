@@ -26,7 +26,7 @@ export function addProof(instruction: TransactionInstruction, nodeProof: Buffer[
                 isWritable: false,
                 pubkey: new PublicKey(node),
             };
-        }),
+        })
     );
     return instruction;
 }
@@ -42,7 +42,7 @@ export function addProof(instruction: TransactionInstruction, nodeProof: Buffer[
 export function createInitEmptyMerkleTreeIx(
     merkleTree: PublicKey,
     authority: PublicKey,
-    depthSizePair: ValidDepthSizePair,
+    depthSizePair: ValidDepthSizePair
 ): TransactionInstruction {
     return createInitEmptyMerkleTreeInstruction(
         {
@@ -50,7 +50,7 @@ export function createInitEmptyMerkleTreeIx(
             merkleTree,
             noop: SPL_NOOP_PROGRAM_ID,
         },
-        depthSizePair,
+        depthSizePair
     );
 }
 
@@ -70,7 +70,7 @@ export function createInitMerkleTreeWithRootIx(
     root: ArrayLike<number> | Buffer,
     manifestUrl: string,
     initialProof?: Buffer[],
-    proofBuffer?: PublicKey,
+    proofBuffer?: PublicKey
 ): TransactionInstruction {
     if (!initialProof && !proofBuffer) {
         throw new Error('Either initialProof or proofBuffer must be provided');
@@ -97,7 +97,7 @@ export function createInitMerkleTreeWithRootIx(
             maxBufferSize: depthSizePair.maxBufferSize,
             maxDepth: depthSizePair.maxDepth,
             root: Array.from(root),
-        },
+        }
     );
 }
 
@@ -113,7 +113,7 @@ export function createReplaceIx(
     merkleTree: PublicKey,
     authority: PublicKey,
     newLeaf: Buffer,
-    proof: MerkleTreeProof,
+    proof: MerkleTreeProof
 ): TransactionInstruction {
     return addProof(
         createReplaceLeafInstruction(
@@ -127,9 +127,9 @@ export function createReplaceIx(
                 newLeaf: Array.from(newLeaf),
                 previousLeaf: Array.from(proof.leaf),
                 root: Array.from(proof.root),
-            },
+            }
         ),
-        proof.proof,
+        proof.proof
     );
 }
 
@@ -143,7 +143,7 @@ export function createReplaceIx(
 export function createAppendIx(
     merkleTree: PublicKey,
     authority: PublicKey,
-    newLeaf: ArrayLike<number> | Buffer,
+    newLeaf: ArrayLike<number> | Buffer
 ): TransactionInstruction {
     return createAppendInstruction(
         {
@@ -153,7 +153,7 @@ export function createAppendIx(
         },
         {
             leaf: Array.from(newLeaf),
-        },
+        }
     );
 }
 
@@ -167,7 +167,7 @@ export function createAppendIx(
 export function createTransferAuthorityIx(
     merkleTree: PublicKey,
     authority: PublicKey,
-    newAuthority: PublicKey,
+    newAuthority: PublicKey
 ): TransactionInstruction {
     return createTransferAuthorityInstruction(
         {
@@ -176,7 +176,7 @@ export function createTransferAuthorityIx(
         },
         {
             newAuthority,
-        },
+        }
     );
 }
 
@@ -196,9 +196,9 @@ export function createVerifyLeafIx(merkleTree: PublicKey, proof: MerkleTreeProof
                 index: proof.leafIndex,
                 leaf: Array.from(proof.leaf),
                 root: Array.from(proof.root),
-            },
+            }
         ),
-        proof.proof,
+        proof.proof
     );
 }
 
@@ -219,12 +219,12 @@ export async function createAllocTreeIx(
     merkleTree: PublicKey,
     payer: PublicKey,
     depthSizePair: ValidDepthSizePair,
-    canopyDepth: number,
+    canopyDepth: number
 ): Promise<TransactionInstruction> {
     const requiredSpace = getConcurrentMerkleTreeAccountSize(
         depthSizePair.maxDepth,
         depthSizePair.maxBufferSize,
-        canopyDepth ?? 0,
+        canopyDepth ?? 0
     );
     return SystemProgram.createAccount({
         fromPubkey: payer,
@@ -245,7 +245,7 @@ export async function createAllocTreeIx(
 export function createCloseEmptyTreeIx(
     merkleTree: PublicKey,
     authority: PublicKey,
-    recipient: PublicKey,
+    recipient: PublicKey
 ): TransactionInstruction {
     return createCloseEmptyTreeInstruction({
         authority,

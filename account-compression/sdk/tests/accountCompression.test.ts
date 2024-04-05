@@ -82,9 +82,9 @@ describe('Account Compression', () => {
         leafIndex: 0,
         manifestUrl: "http://manifest.com/",
         payer: payerKeypair,
+        proof: merkleTreeRaw.getProof(0).proof,
         provider,
         root,
-        proof: merkleTreeRaw.getProof(0).proof,
       });
       const cmt = cmtKeypair.publicKey;
 
