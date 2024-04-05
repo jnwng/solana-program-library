@@ -38,7 +38,7 @@ export async function execute(
     } catch (e) {
         if (e instanceof SendTransactionError) {
             console.log('Tx error!', e.logs);
-	}
+        }
         throw e;
     }
 
